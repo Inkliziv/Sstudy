@@ -1,13 +1,36 @@
+/**
+ * YouTube URL'dan video ID'ni ajratib oladi.
+ * Quyidagi formatlarni qo'llab-quvvatlaydi:
+ *   https://www.youtube.com/watch?v=VIDEO_ID
+ *   https://youtu.be/VIDEO_ID
+ *   https://youtube.com/embed/VIDEO_ID
+ *   https://youtube.com/shorts/VIDEO_ID
+ *   https://www.youtube.com/watch?v=VIDEO_ID&t=10s
+ *   https://youtu.be/VIDEO_ID?si=xxx
+ */
 export function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
+  if (!url) return null;
+  const clean = url.trim();
+
+  // youtube.com/watch?v=
+  const watchMatch = clean.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+
+  // youtu.be/VIDEO_ID
+  const shortMatch = clean.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+
+  // youtube.com/embed/VIDEO_ID
+  const embedMatch = clean.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+
+  // youtube.com/shorts/VIDEO_ID
+  const shortsMatch = clean.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+
+  // Faqat 11 belgili ID kiritilgan bo'lsa
+  if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
+
   return null;
 }
 

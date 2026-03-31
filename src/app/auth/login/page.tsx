@@ -4,10 +4,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,24 +23,41 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      setError("Email yoki parol noto'g'ri");
+      if (authError.message.includes("Email not confirmed")) {
+        setError("Emailingiz tasdiqlanmagan. Pochta qutingizni tekshiring.");
+      } else if (authError.message.includes("Invalid login credentials")) {
+        setError("Email yoki parol noto'g'ri.");
+      } else {
+        setError(authError.message);
+      }
       setLoading(false);
       return;
     }
 
     if (data.user) {
-      const { data: userData } = await supabase
+      // users jadvalida yozuv bo'lmasa — yaratamiz
+      const { data: existing } = await supabase
         .from("users")
-        .select("role")
+        .select("id, role")
         .eq("id", data.user.id)
         .single();
 
-      if (userData?.role === "admin") {
-        router.push("/admin");
+      if (!existing) {
+        const meta = data.user.user_metadata;
+        await supabase.from("users").upsert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: meta?.full_name || data.user.email || "Foydalanuvchi",
+          role: "student",
+        });
+        // Student sifatida dashboard'ga
+        window.location.href = "/dashboard";
       } else {
-        router.push("/dashboard");
+        // Rolga qarab yo'naltirish
+        window.location.href = existing.role === "admin" ? "/admin" : "/dashboard";
       }
     }
+
     setLoading(false);
   };
 
@@ -62,7 +77,7 @@ export default function LoginPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm border border-red-100">
               {error}
             </div>
           )}
@@ -106,7 +121,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
               {loading ? "Kirish..." : "Kirish"}
             </button>
           </form>

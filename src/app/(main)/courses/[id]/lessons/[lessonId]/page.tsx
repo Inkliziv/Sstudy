@@ -194,16 +194,21 @@ export default function LessonPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         {/* Video */}
-        {videoId && (
+        {videoId ? (
           <div className="youtube-container bg-black">
             <iframe
-              src={`https://www.youtube.com/embed/${videoId}?rel=0`}
+              src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
               title={lesson.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
-        )}
+        ) : lesson.youtube_url ? (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 text-sm">
+            Video URL noto&apos;g&apos;ri formatda: <span className="font-mono">{lesson.youtube_url}</span>
+          </div>
+        ) : null}
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex items-start justify-between mb-6">

@@ -3,17 +3,16 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { BookOpen, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,23 +34,60 @@ export default function RegisterPage() {
     });
 
     if (authError) {
-      setError(authError.message);
+      if (authError.message.includes("already registered") || authError.message.includes("already been registered")) {
+        setError("Bu email allaqachon ro'yxatdan o'tgan. Kirish sahifasiga o'ting.");
+      } else {
+        setError(authError.message);
+      }
       setLoading(false);
       return;
     }
 
     if (data.user) {
-      await supabase.from("users").insert({
+      // users jadvaliga yozamiz (session bo'lsa ham bo'lmasa ham upsert)
+      await supabase.from("users").upsert({
         id: data.user.id,
-        email,
+        email: email,
         full_name: fullName,
         role: "student",
       });
 
-      router.push("/dashboard");
+      if (data.session) {
+        // Email tasdiqlash o'chirilgan — to'g'ridan-to'g'ri kirish
+        window.location.href = "/dashboard";
+      } else {
+        // Email tasdiqlash kerak
+        setSuccess(true);
+      }
     }
+
     setLoading(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Emailingizni tasdiqlang</h2>
+            <p className="text-gray-500 mb-6">
+              <span className="font-medium text-gray-700">{email}</span> manziliga tasdiqlash xati yuborildi.
+              Emailingizni oching va havolani bosing.
+            </p>
+            <Link
+              href="/auth/login"
+              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Kirish sahifasiga o&apos;tish
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -69,7 +105,7 @@ export default function RegisterPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm border border-red-100">
               {error}
             </div>
           )}
@@ -125,7 +161,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
               {loading ? "Yaratilmoqda..." : "Hisob yaratish"}
             </button>
           </form>
